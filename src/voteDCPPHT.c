@@ -5,6 +5,7 @@
  * 
  * Filename: votePPHT.c (compiled into mex)
  * F-Description: Progressive Probabilistic Hough Transform(PPHT)
+ *					with the DC
  *
  *		input 	a MxN matrix "img"
  *				a 	  scalar "linesMax"
@@ -14,14 +15,14 @@
  *		outputs a 4xR matrix "lines"
  *
  * 		The calling syntax is:
- *			[linesEnd] = votePPHT(img,linesMax,lineLength,lineGap)
+ *			[linesEnd] = voteDCPPHT(img,linesMax,lineLength,lineGap)
  * 
  * Author：Yirami
  * A-Description:
  * 		mailto:	  1446675043@qq.com
  * 		website:  https://yirami.github.io./
  * 
- * Date: 13-04-2017
+ * Date: 24-05-2017
  * Version: 1.0
  *  
  * New  Release:
@@ -61,7 +62,7 @@ unsigned int traversalLoop (unsigned int confusion, unsigned int linesCountCurr,
 }
 
 /* The computational routine */
-void votePPHT(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
+void voteDCPPHT(unsigned int *img, unsigned int *vote, size_t m, size_t n, \
 				double *sinMap, double *cosMap, double thetaStep, \
 				unsigned int thetaQ, double rhoStep, unsigned int rhoQ, \
 				unsigned int *outputInfo[2], unsigned int lineLimitInfo[6]	)
@@ -125,19 +126,135 @@ void votePPHT(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
 		// check if it has been excluded already (i.e. belongs to some other line)
 		if (!mask[m*point[1]+point[0]])
 			continue;
-		// update accumulator, find the most probable line
-		for (unsigned int num_curr=0; num_curr<4*thetaQ; num_curr++)
+		// compute the DC and give the range of angle
+			// index of start angle
+		unsigned int subs_left;
+			// index of end angle
+		unsigned int subs_right;
+			// flag of skip the process of part of default
+		int skipFlag = 1;
+			// index of reference point
+		unsigned int subs_ref = (point[1]-1)*m+point[0]-1;
+			// convolution result
+		unsigned int sum = 1000*(img[subs_ref]+img[subs_ref+2*m+2])+ \
+							100*(img[subs_ref+m]+img[subs_ref+m+2])+ \
+							10*(img[subs_ref+2]+img[subs_ref+2*m])+  \
+							img[subs_ref+1]+img[subs_ref+2*m+1];
+			// for each point not zero judgment angle range based on convolution
+		switch (sum)
 		{
-			double rho_curr = floor((point[1]*cosMap[num_curr]+point[0]*sinMap[num_curr])/rhoStep+0.5);
-			unsigned int val_curr = ++vote[num_curr*(2*rhoQ+1)+(unsigned int)rho_curr+rhoQ];
-			if (voteMax < val_curr)
-			{
-				voteMax = val_curr;
-				numMax = num_curr;
-				if (isMerge)
+			// Note: When we need to reduce the code space, we can compress
+			// 	... the range of the "case" to reduce the size of the table !
+			//  ... DETAILS may get here : 
+			//  ... 	http://www.cnblogs.com/idorax/p/6275259.html
+			//
+			//  The configuration below can be adjusted as appropriate
+			//
+					
+			// -90~-45
+			case 1002:case 2001:case 1001:case 2002:
+				subs_left = 0;
+				subs_right = thetaQ;
+				break;
+			// -45~0
+			case 2100:case 1200:case 1100:case 2200:
+				subs_left = thetaQ;
+				subs_right = 2*thetaQ;
+				break;
+			// 0~45
+			case 210:case 120:case 110:case 220:
+				subs_left = 2*thetaQ;
+				subs_right = 3*thetaQ;
+				break;
+			// 45~90
+			case 21:case 12:case 11:case 22:
+				subs_left = 3*thetaQ;
+				subs_right = 4*thetaQ;
+				break;
+			// -90~0
+			case 1101:case 2000:case 2101:case 1201:case 1102:case 2111:
+				subs_left = 0;
+				subs_right = 2*thetaQ;
+				break;
+			// -45~45
+			case 1110:case 200:case 2110:case 1210:case 1120:case 1211:
+				subs_left = thetaQ;
+				subs_right = 3*thetaQ;
+				break;
+			// 0~90
+			case 111:case 20:case 211:case 121:case 112:case 1121:
+				subs_left = 2*thetaQ;
+				subs_right = 4*thetaQ;
+				break;
+			// 45~-45
+			case 1011:case 2:case 2011:case 1021:case 1012:case 1112:
+				subs_left = 3*thetaQ;
+				subs_right = thetaQ;
+				break;
+			// else
+			default:
+				if (skipFlag)
 				{
-					thetaCurr = -90+45*(num_curr/thetaQ)+thetaStep*(num_curr%thetaQ);
-					rhoCurr = rho_curr;
+					continue;
+				}
+				else
+				{
+					subs_left = 0;
+					subs_right = 4*thetaQ;
+					break;
+				}
+		}
+		// update accumulator, find the most probable line
+		// ... with DC
+		if (subs_right<subs_left)
+		{
+			unsigned int val_curr;
+			for (unsigned int idx = 0; idx < subs_right; idx++)
+			{
+				double rho_c = floor((point[1]*cosMap[idx]+point[0]*sinMap[idx])/rhoStep+0.5);
+				val_curr = ++vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ];
+				if (voteMax < val_curr)
+				{
+					voteMax = val_curr;
+					numMax = idx;
+					if (isMerge)
+					{
+						thetaCurr = -90+45*(idx/thetaQ)+thetaStep*(idx%thetaQ);
+						rhoCurr = rho_c;
+					}
+				}
+			}
+			for (unsigned int idx = subs_left; idx < 4*thetaQ; idx++)
+			{
+				double rho_c = floor((point[1]*cosMap[idx]+point[0]*sinMap[idx])/rhoStep+0.5);
+				val_curr = ++vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ];
+				if (voteMax < val_curr)
+				{
+					voteMax = val_curr;
+					numMax = idx;
+					if (isMerge)
+					{
+						thetaCurr = -90+45*(idx/thetaQ)+thetaStep*(idx%thetaQ);
+						rhoCurr = rho_c;
+					}
+				}
+			}
+		}
+		else
+		{
+			for (unsigned int idx = subs_left; idx < subs_right; idx++)
+			{
+				double rho_c = floor((point[1]*cosMap[idx]+point[0]*sinMap[idx])/rhoStep+0.5);
+				unsigned int val_curr = ++vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ];
+				if (voteMax < val_curr)
+				{
+					voteMax = val_curr;
+					numMax = idx;
+					if (isMerge)
+					{
+						thetaCurr = -90+45*(idx/thetaQ)+thetaStep*(idx%thetaQ);
+						rhoCurr = rho_c;
+					}
 				}
 			}
 		}
@@ -240,10 +357,27 @@ void votePPHT(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
 				{
 					if (goodLine && mask[c1*m+r1]==2)
 					{
-						for (unsigned int num_curr=0; num_curr<4*thetaQ; num_curr++)
+						
+						if (subs_right<subs_left)
 						{
-							double rho_curr = floor((c1*cosMap[num_curr]+r1*sinMap[num_curr])/rhoStep+0.5);
-							vote[num_curr*(2*rhoQ+1)+(unsigned int)rho_curr+rhoQ]--;
+							for (unsigned int idx = 0; idx < subs_right; idx++)
+							{
+								double rho_c = floor((c1*cosMap[idx]+r1*sinMap[idx])/rhoStep+0.5);
+								vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]--;
+							}
+							for (unsigned int idx = subs_left; idx < 4*thetaQ; idx++)
+							{
+								double rho_c = floor((c1*cosMap[idx]+r1*sinMap[idx])/rhoStep+0.5);
+								vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]--;
+							}
+						}
+						else
+						{
+							for (unsigned int idx = subs_left; idx < subs_right; idx++)
+							{
+								double rho_c = floor((c1*cosMap[idx]+r1*sinMap[idx])/rhoStep+0.5);
+								vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]--;
+							}
 						}
 					}
 					mask[c1*m+r1] = 0;
@@ -471,7 +605,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		linesEndSrc
 	};
     // call the computational routine
-    votePPHT(img,H,mrows,ncols,sinMap,cosMap,thetaStep,thetaQ,rhoStep,rhoQ,outputInfo,lineLimitInfo);
+    voteDCPPHT(img,H,mrows,ncols,sinMap,cosMap,thetaStep,thetaQ,rhoStep,rhoQ,outputInfo,lineLimitInfo);
 // --> Rest
 
 	// create the output matrix "linesEnd"

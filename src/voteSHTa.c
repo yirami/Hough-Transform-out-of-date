@@ -5,22 +5,25 @@
  * 
  * Filename: voteSHT.c (compiled into mex)
  * F-Description: vote for Standard Hough transform(SHT)
+ *					with a limit of angle
  *
- *		input 	a MxN matrix "img"
+ *		inputs 	a MxN matrix "img"
+ *			 	a 	  scalar "angleS"
+ *			 	a	  scalar "angleE"
  * 			and 
  *		outputs a PxQ matrix "H"
  *				a 1xR matrix "theta"
  *				a 1xR matrix "rho"
  *
  * 		The calling syntax is:
- *			[H,theta,rho] = voteSHT(img)
+ *			[H,theta,rho] = voteSHTa(img,angleS,angleE)
  * 
  * Author：Yirami
  * A-Description:
  * 		mailto:	  1446675043@qq.com
  * 		website:  https://yirami.github.io./
  * 
- * Date: 29-03-2017
+ * Date: 24-05-2017
  * Version: 1.0
  *  
  * New  Release:
@@ -35,7 +38,7 @@
 #define pi 3.14159265358979
 
 /* The computational routine */
-void voteSHT(unsigned int *img, unsigned int *vote, size_t m, size_t n, double rho_step, double *sinMap, double *cosMap, unsigned int thetaQ, unsigned int rhoQ)
+void voteSHTa(unsigned int *img, unsigned int *vote, size_t m, size_t n, double rho_step, double *sinMap, double *cosMap, unsigned int thetaQ, unsigned int rhoQ, unsigned int pre_subs_left, unsigned int pre_subs_right)
 {
 // --> Vote for each point not zero
 	// "j" means cols-1
@@ -46,12 +49,27 @@ void voteSHT(unsigned int *img, unsigned int *vote, size_t m, size_t n, double r
 		{
 			if (img[j*m+i])
 			{
-				for (unsigned int num_c=0; num_c<4*thetaQ; num_c++)
+				// vote based on angle range
+				if (pre_subs_right<pre_subs_left)
 				{
-					// compute the rho in current point
-					double rho_c = floor((j*cosMap[num_c]+i*sinMap[num_c])/rho_step+0.5);
-					// vote 
-					vote[num_c*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
+					for (unsigned int idx = 0; idx < pre_subs_right; idx++)
+					{
+						double rho_c = floor((j*cosMap[idx]+i*sinMap[idx])/rho_step+0.5);
+						vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
+					}
+					for (unsigned int idx = pre_subs_left; idx < 4*thetaQ; idx++)
+					{
+						double rho_c = floor((j*cosMap[idx]+i*sinMap[idx])/rho_step+0.5);
+						vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
+					}
+				}
+				else
+				{
+					for (unsigned int idx = pre_subs_left; idx < pre_subs_right; idx++)
+					{
+						double rho_c = floor((j*cosMap[idx]+i*sinMap[idx])/rho_step+0.5);
+						vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
+					}
 				}
 			}
 		}
@@ -65,9 +83,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Parameters check
 
     // check for proper number of arguments
-    if(nrhs!=1) 
+    if(nrhs!=3) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteSHT:nrhs","One input required.");
+        mexErrMsgIdAndTxt("MyToolbox:voteSHT:nrhs","Three inputs required.");
     }
     if(nlhs!=3) 
 	{
@@ -90,6 +108,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // and get dimensions of the input matrix 
 	size_t mrows = mxGetM(prhs[0]);
     size_t ncols = mxGetN(prhs[0]);
+    // get the upper and lower of angle
+	double angleS = mxGetScalar(prhs[1]);
+	double angleE = mxGetScalar(prhs[2]);
 // --> Parameters can be added to function interface
 
 	// default parameters
@@ -146,10 +167,27 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		rho[rhoQ+count] = rho_step*(double)count;
 		rho[rhoQ-count] = -rho_step*(double)count;
 	}
+	// compute position of angleS and angleE
+	unsigned int count =0;
+	for (int base = -45;angleS>=base;count++)
+	{
+		base+=45;
+	}
+	unsigned int angleSQ = count*thetaQ+(unsigned int)(floor((angleS+(double)(2-count)*45)/theta_step));
+	count = 0;
+	for (int base = -45;angleE>=base;count++)
+	{
+		base+=45;
+	}
+	unsigned int angleEQ = count*thetaQ+(unsigned int)(ceil((angleE+(double)(2-count)*45)/theta_step));
+	if (angleEQ>4*thetaQ)
+	{
+		angleEQ-=4*thetaQ;
+	}
 // --> Main computation
 
     // call the computational routine
-    voteSHT(img,H,mrows,ncols,rho_step,sinMap,cosMap,thetaQ,rhoQ);
+    voteSHTa(img,H,mrows,ncols,rho_step,sinMap,cosMap,thetaQ,rhoQ,angleSQ,angleEQ);
 // --> Rest
 
 	// release memory

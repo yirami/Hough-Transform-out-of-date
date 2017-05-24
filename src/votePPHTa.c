@@ -5,23 +5,26 @@
  * 
  * Filename: votePPHT.c (compiled into mex)
  * F-Description: Progressive Probabilistic Hough Transform(PPHT)
+ *					with a limit of angle
  *
- *		input 	a MxN matrix "img"
+ *		inputs 	a MxN matrix "img"
  *				a 	  scalar "linesMax"
  *				a 	  scalar "lineLength"
  *				a 	  scalar "lineGap"
+ *			 	a 	  scalar "angleS"
+ *			 	a	  scalar "angleE"
  * 			and 
  *		outputs a 4xR matrix "lines"
  *
  * 		The calling syntax is:
- *			[linesEnd] = votePPHT(img,linesMax,lineLength,lineGap)
+ *			[linesEnd] = votePPHTa(img,linesMax,lineLength,lineGap,angleS,angleE)
  * 
  * Author：Yirami
  * A-Description:
  * 		mailto:	  1446675043@qq.com
  * 		website:  https://yirami.github.io./
  * 
- * Date: 13-04-2017
+ * Date: 24-05-2017
  * Version: 1.0
  *  
  * New  Release:
@@ -61,10 +64,11 @@ unsigned int traversalLoop (unsigned int confusion, unsigned int linesCountCurr,
 }
 
 /* The computational routine */
-void votePPHT(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
+void votePPHTa(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
 				double *sinMap, double *cosMap, double thetaStep, \
 				unsigned int thetaQ, double rhoStep, unsigned int rhoQ, \
-				unsigned int *outputInfo[2], unsigned int lineLimitInfo[6]	)
+				unsigned int *outputInfo[2], unsigned int lineLimitInfo[6], \
+				unsigned int pre_subs_left, unsigned int pre_subs_right	)
 {
 // --> Unpackage the input parameters
 
@@ -126,18 +130,56 @@ void votePPHT(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
 		if (!mask[m*point[1]+point[0]])
 			continue;
 		// update accumulator, find the most probable line
-		for (unsigned int num_curr=0; num_curr<4*thetaQ; num_curr++)
+		// ... with a limit of angle
+		if (pre_subs_right	<pre_subs_left)
 		{
-			double rho_curr = floor((point[1]*cosMap[num_curr]+point[0]*sinMap[num_curr])/rhoStep+0.5);
-			unsigned int val_curr = ++vote[num_curr*(2*rhoQ+1)+(unsigned int)rho_curr+rhoQ];
-			if (voteMax < val_curr)
+			unsigned int val_curr;
+			for (unsigned int idx = 0; idx < pre_subs_right; idx++)
 			{
-				voteMax = val_curr;
-				numMax = num_curr;
-				if (isMerge)
+				double rho_c = floor((point[1]*cosMap[idx]+point[0]*sinMap[idx])/rhoStep+0.5);
+				val_curr = ++vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ];
+				if (voteMax < val_curr)
 				{
-					thetaCurr = -90+45*(num_curr/thetaQ)+thetaStep*(num_curr%thetaQ);
-					rhoCurr = rho_curr;
+					voteMax = val_curr;
+					numMax = idx;
+					if (isMerge)
+					{
+						thetaCurr = -90+45*(idx/thetaQ)+thetaStep*(idx%thetaQ);
+						rhoCurr = rho_c;
+					}
+				}
+			}
+			for (unsigned int idx = pre_subs_left; idx < 4*thetaQ; idx++)
+			{
+				double rho_c = floor((point[1]*cosMap[idx]+point[0]*sinMap[idx])/rhoStep+0.5);
+				val_curr = ++vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ];
+				if (voteMax < val_curr)
+				{
+					voteMax = val_curr;
+					numMax = idx;
+					if (isMerge)
+					{
+						thetaCurr = -90+45*(idx/thetaQ)+thetaStep*(idx%thetaQ);
+						rhoCurr = rho_c;
+					}
+				}
+			}
+		}
+		else
+		{
+			for (unsigned int idx = pre_subs_left; idx < pre_subs_right; idx++)
+			{
+				double rho_c = floor((point[1]*cosMap[idx]+point[0]*sinMap[idx])/rhoStep+0.5);
+				unsigned int val_curr = ++vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ];
+				if (voteMax < val_curr)
+				{
+					voteMax = val_curr;
+					numMax = idx;
+					if (isMerge)
+					{
+						thetaCurr = -90+45*(idx/thetaQ)+thetaStep*(idx%thetaQ);
+						rhoCurr = rho_c;
+					}
 				}
 			}
 		}
@@ -240,10 +282,27 @@ void votePPHT(	unsigned int *img, unsigned int *vote, size_t m, size_t n, \
 				{
 					if (goodLine && mask[c1*m+r1]==2)
 					{
-						for (unsigned int num_curr=0; num_curr<4*thetaQ; num_curr++)
+
+						if (pre_subs_right<pre_subs_left)
 						{
-							double rho_curr = floor((c1*cosMap[num_curr]+r1*sinMap[num_curr])/rhoStep+0.5);
-							vote[num_curr*(2*rhoQ+1)+(unsigned int)rho_curr+rhoQ]--;
+							for (unsigned int idx = 0; idx < pre_subs_right; idx++)
+							{
+								double rho_c = floor((c1*cosMap[idx]+r1*sinMap[idx])/rhoStep+0.5);
+								vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]--;
+							}
+							for (unsigned int idx = pre_subs_left; idx < 4*thetaQ; idx++)
+							{
+								double rho_c = floor((c1*cosMap[idx]+r1*sinMap[idx])/rhoStep+0.5);
+								vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]--;
+							}
+						}
+						else
+						{
+							for (unsigned int idx = pre_subs_left; idx < pre_subs_right; idx++)
+							{
+								double rho_c = floor((c1*cosMap[idx]+r1*sinMap[idx])/rhoStep+0.5);
+								vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]--;
+							}
 						}
 					}
 					mask[c1*m+r1] = 0;
@@ -360,9 +419,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Parameters check
 
     // check for proper number of arguments
-    if(nrhs!=4) 
+    if(nrhs!=6) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:nrhs","Four inputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:votePPHT:nrhs","Six inputs required.");
     }
     if(nlhs!=1) 
 	{
@@ -389,7 +448,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	unsigned int linesMax = (unsigned int)mxGetScalar(prhs[1]);
 	unsigned int lineLength = (unsigned int)mxGetScalar(prhs[2]);
 	unsigned int lineGap = (unsigned int)mxGetScalar(prhs[3]);
-	
+    // get the upper and lower of angle
+	double angleS = mxGetScalar(prhs[4]);
+	double angleE = mxGetScalar(prhs[5]);
 // --> Parameters can be added to function interface
 
 	// default parameters
@@ -452,6 +513,23 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	}
 	// dynamic allocation of "linesEnd" & ""
 	unsigned int *linesEndSrc = mxMalloc(4*linesMax*sizeof(unsigned int));
+	// compute position of angleS and angleE
+	unsigned int count =0;
+	for (int base = -45;angleS>=base;count++)
+	{
+		base+=45;
+	}
+	unsigned int angleSQ = count*thetaQ+(unsigned int)(floor((angleS+(double)(2-count)*45)/thetaStep));
+	count = 0;
+	for (int base = -45;angleE>=base;count++)
+	{
+		base+=45;
+	}
+	unsigned int angleEQ = count*thetaQ+(unsigned int)(ceil((angleE+(double)(2-count)*45)/thetaStep));
+	if (angleEQ>4*thetaQ)
+	{
+		angleEQ-=4*thetaQ;
+	}
 // --> Main computation
 
 	// package the input parameters
@@ -471,7 +549,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		linesEndSrc
 	};
     // call the computational routine
-    votePPHT(img,H,mrows,ncols,sinMap,cosMap,thetaStep,thetaQ,rhoStep,rhoQ,outputInfo,lineLimitInfo);
+    votePPHTa(img,H,mrows,ncols,sinMap,cosMap,thetaStep,thetaQ,rhoStep,rhoQ,outputInfo,lineLimitInfo,angleSQ,angleEQ);
 // --> Rest
 
 	// create the output matrix "linesEnd"

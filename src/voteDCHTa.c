@@ -5,22 +5,25 @@
  * 
  * Filename: voteDCHT.c (compiled into mex)
  * F-Description: vote for the algorithm presented in this paper
+ *						with a limit of angle
  *
- *		input 	a MxN matrix "img"
+ *		inputs 	a MxN matrix "img"
+ *			 	a 	  scalar "angleS"
+ *			 	a	  scalar "angleE"
  * 			and 
  *		outputs a PxQ matrix "H"
  *				a 1xR matrix "theta"
  *				a 1xR matrix "rho"
  *
  * 		The calling syntax is:
- *			[H,theta,rho] = voteDCHT(img)
+ *			[H,theta,rho] = voteDCHTa(img,angleS,angleE)
  * 
  * Author£ºYirami
  * A-Description:
  * 		mailto:	  1446675043@qq.com
  * 		website:  https://yirami.github.io./
  * 
- * Date: 29-03-2017
+ * Date: 24-05-2017
  * Version: 1.0
  *  
  * New  Release:
@@ -35,7 +38,7 @@
 #define pi 3.14159265358979
 
 /* The computational routine */
-void voteDCHT(unsigned int *img, unsigned int *vote, size_t m, size_t n, double rho_step, double *sinMap, double *cosMap, unsigned int thetaQ, unsigned int rhoQ)
+void voteDCHTa(unsigned int *img, unsigned int *vote, size_t m, size_t n, double rho_step, double *sinMap, double *cosMap, unsigned int thetaQ, unsigned int rhoQ, unsigned int pre_subs_left, unsigned int pre_subs_right)
 {
 // --> Vote based on angle range
 	// "j" means cols-1
@@ -123,6 +126,110 @@ void voteDCHT(unsigned int *img, unsigned int *vote, size_t m, size_t n, double 
 							break;
 						}
 				}
+				// fuse the angle range
+					// Note: The angle between pre_subs_left and pre_subs_right
+					// 	... should not be more than 90 degrees !
+				if (subs_right<subs_left)
+				{
+					if (pre_subs_left>subs_left)
+					{
+						if (pre_subs_right>=pre_subs_left || pre_subs_right<subs_right)
+						{
+							subs_left=pre_subs_left;
+							subs_right=pre_subs_right;
+						}
+						else if (pre_subs_right<=subs_left)
+						{
+							subs_left=pre_subs_left;
+						}
+						// dealing with specific situations implicitly here !
+					}
+					else if (pre_subs_left>=subs_right)
+					{
+						if (pre_subs_right>subs_left || pre_subs_right<subs_right)
+						{
+							subs_right=pre_subs_right;
+						}
+						else if (pre_subs_right>=pre_subs_left)
+						{
+							continue;
+						}
+						// dealing with specific situations implicitly here !
+					}
+					else
+					{
+						if (pre_subs_right>subs_left || pre_subs_right<=pre_subs_left)
+						{
+							
+						}
+						else if (pre_subs_right>=subs_right)
+						{
+							subs_left=pre_subs_left;
+						}
+						else
+						{
+							subs_left=pre_subs_left;
+							subs_right=pre_subs_right;
+						}
+					}
+				}
+				else
+				{
+					if (pre_subs_left>=subs_right)
+					{
+						if (pre_subs_right>=pre_subs_left || pre_subs_right<=subs_left)
+						{
+							continue;
+						}
+						else if (pre_subs_right<subs_right)
+						{
+							subs_right=pre_subs_right;
+						}
+						// dealing with specific situations implicitly here !
+					}
+					else if (pre_subs_left>subs_left)
+					{
+						if (pre_subs_right>=subs_right || pre_subs_right<=subs_left)
+						{
+							subs_left=pre_subs_left;
+						}
+						else if (pre_subs_right>=pre_subs_left)
+						{
+							subs_left=pre_subs_left;
+							subs_right=pre_subs_right;
+						}
+						// dealing with specific situations implicitly here !
+					}
+					else
+					{
+						if (pre_subs_right>=subs_right || pre_subs_right<=pre_subs_left)
+						{
+							
+						}
+						else if (pre_subs_right>subs_left)
+						{
+							subs_right=pre_subs_right;
+						}
+						else
+						{
+							continue;
+						}
+					}
+				}
+				// fix the small angle
+				if (((subs_right-subs_left)<5 && (subs_right-subs_left)>=0)|| (subs_left-subs_right)>4*thetaQ-5)
+				{
+					subs_left=subs_left-2;
+					if (subs_left<0)
+					{
+						subs_left=subs_left+4*thetaQ;
+					}
+					subs_right=subs_right+2;
+					if (subs_right>4*thetaQ)
+					{
+						subs_right=subs_right-4*thetaQ;
+					}
+				}
 				// vote based on angle range
 				if (subs_right<subs_left)
 				{
@@ -157,9 +264,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Parameters check
 
     // check for proper number of arguments
-    if(nrhs!=1) 
+    if(nrhs!=3) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHT:nrhs","One input required.");
+        mexErrMsgIdAndTxt("MyToolbox:voteDCHT:nrhs","Three inputs required.");
     }
     if(nlhs!=3) 
 	{
@@ -187,6 +294,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	{
         mexErrMsgIdAndTxt("MyToolbox:voteDCHT:toosmall","Input matrix must be larger than 3x3.");
     }
+    // get the upper and lower of angle
+	double angleS = mxGetScalar(prhs[1]);
+	double angleE = mxGetScalar(prhs[2]);
 // --> Parameters can be added to function interface
 
 	// default parameters
@@ -243,10 +353,27 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		rho[rhoQ+count] = rho_step*(double)count;
 		rho[rhoQ-count] = -rho_step*(double)count;
 	}
+	// compute position of angleS and angleE
+	unsigned int count =0;
+	for (int base = -45;angleS>=base;count++)
+	{
+		base+=45;
+	}
+	unsigned int angleSQ = count*thetaQ+(unsigned int)(floor((angleS+(double)(2-count)*45)/theta_step));
+	count = 0;
+	for (int base = -45;angleE>=base;count++)
+	{
+		base+=45;
+	}
+	unsigned int angleEQ = count*thetaQ+(unsigned int)(ceil((angleE+(double)(2-count)*45)/theta_step));
+	if (angleEQ>4*thetaQ)
+	{
+		angleEQ-=4*thetaQ;
+	}
 // --> Main computation
 
     // call the computational routine
-    voteDCHT(img,H,mrows,ncols,rho_step,sinMap,cosMap,thetaQ,rhoQ);
+    voteDCHTa(img,H,mrows,ncols,rho_step,sinMap,cosMap,thetaQ,rhoQ,angleSQ,angleEQ);
 // --> Rest
 
 	// release memory
