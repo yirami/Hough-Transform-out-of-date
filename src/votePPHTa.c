@@ -3,7 +3,7 @@
  * Released under BSD License
  * All rights reserved.
  * 
- * Filename: votePPHT.c (compiled into mex)
+ * Filename: votePPHTa.c (compiled into mex)
  * F-Description: Progressive Probabilistic Hough Transform(PPHT)
  *					with a limit of angle
  *
@@ -421,21 +421,21 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // check for proper number of arguments
     if(nrhs!=6) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:nrhs","Six inputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:votePPHTa:nrhs","Six inputs required.");
     }
     if(nlhs!=1) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:nlhs","One output required.");
+        mexErrMsgIdAndTxt("MyToolbox:votePPHTa:nlhs","One output required.");
     }
     // check the type of input argument(s)
     if( !mxIsUint32(prhs[0]) ) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:notUint32","Input matrix must be type Uint32.");
+        mexErrMsgIdAndTxt("MyToolbox:votePPHTa:notUint32","Input matrix must be type Uint32.");
     }
     // check the shape of input argument(s)
     if(mxGetNumberOfDimensions(prhs[0])!=2) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:not2D","Input must be 2-D.");
+        mexErrMsgIdAndTxt("MyToolbox:votePPHTa:not2D","Input must be 2-D.");
     }
 // --> Accept input parameters
 
@@ -451,6 +451,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // get the upper and lower of angle
 	double angleS = mxGetScalar(prhs[4]);
 	double angleE = mxGetScalar(prhs[5]);
+    // check the range of input argument(s)
+	if (angleS<-90 || angleS>90 || angleE<-90 || angleE>90)
+	{
+        mexErrMsgIdAndTxt("MyToolbox:votePPHTa:OutOfDefined","Input of specified range must be between [-90,90].");
+	}
 // --> Parameters can be added to function interface
 
 	// default parameters
@@ -466,9 +471,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	double rhoMax = floor(sqrt(pow((double)mrows-1,2)+pow((double)ncols-1,2))+0.5);
     if(thetaResolution>5||rhoResolution>rhoMax/10) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:meaningless","Resolution of Theta or Rho is meaningless.");
+        mexErrMsgIdAndTxt("MyToolbox:votePPHTa:meaningless","Resolution of Theta or Rho is meaningless.");
     }
-// --> 	Prepare data
+// --> Prepare data
 	
 	// compute quantity and step of "theta" & "rho"
 	unsigned int thetaQ = (unsigned int)ceil(45/thetaResolution);
@@ -514,18 +519,18 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	// dynamic allocation of "linesEnd" & ""
 	unsigned int *linesEndSrc = mxMalloc(4*linesMax*sizeof(unsigned int));
 	// compute position of angleS and angleE
-	unsigned int count =0;
+	int count =0;
 	for (int base = -45;angleS>=base;count++)
 	{
 		base+=45;
 	}
-	unsigned int angleSQ = count*thetaQ+(unsigned int)(floor((angleS+(double)(2-count)*45)/thetaStep));
+	unsigned int angleSQ = (unsigned int)count*thetaQ+(unsigned int)(floor((angleS+(double)(2-count)*45)/thetaStep));
 	count = 0;
 	for (int base = -45;angleE>=base;count++)
 	{
 		base+=45;
 	}
-	unsigned int angleEQ = count*thetaQ+(unsigned int)(ceil((angleE+(double)(2-count)*45)/thetaStep));
+	unsigned int angleEQ = (unsigned int)count*thetaQ+(unsigned int)(ceil((angleE+(double)(2-count)*45)/thetaStep));
 	if (angleEQ>4*thetaQ)
 	{
 		angleEQ-=4*thetaQ;

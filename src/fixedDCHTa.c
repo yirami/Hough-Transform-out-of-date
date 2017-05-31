@@ -3,11 +3,15 @@
  * Released under BSD License
  * All rights reserved.
  * 
- * Filename: voteDCHTa.c (compiled into mex)
+ * Filename: fixedDCHTa.c (compiled into mex)
  * F-Description: vote for the algorithm presented in this paper
- *						with a limit of angle
+ *						with a limit of area and angle
  *
  *		inputs 	a MxN matrix "img"
+ *			 	a 	  scalar "rRaw"
+ *			 	a	  scalar "cRaw"
+ *			 	a 	  scalar "rTop"
+ *			 	a	  scalar "cLeft"
  *			 	a 	  scalar "angleS"
  *			 	a	  scalar "angleE"
  * 			and 
@@ -16,14 +20,15 @@
  *				a 1xR matrix "rho"
  *
  * 		The calling syntax is:
- *			[H,theta,rho] = voteDCHTa(img,angleS,angleE)
+ *			[H,theta,rho] = fixedDCHTa(img,rRaw,cRaw,rTop,cLeft,
+ *								... angleS,angleE)
  * 
  * Author£ºYirami
  * A-Description:
  * 		mailto:	  1446675043@qq.com
  * 		website:  https://yirami.github.io./
  * 
- * Date: 24-05-2017
+ * Date: 29-05-2017
  * Version: 1.0
  *  
  * New  Release:
@@ -38,7 +43,7 @@
 #define pi 3.14159265358979
 
 /* The computational routine */
-void voteDCHTa(unsigned int *img, unsigned int *vote, size_t m, size_t n, double rho_step, double *sinMap, double *cosMap, unsigned int thetaQ, unsigned int rhoQ, unsigned int pre_subs_left, unsigned int pre_subs_right)
+void fixedDCHTa(unsigned int *img, unsigned int *vote, size_t m, size_t n, double rho_step, double *sinMap, double *cosMap, unsigned int thetaQ, unsigned int rhoQ, unsigned int pre_subs_left, unsigned int pre_subs_right, size_t rTop, size_t cLeft)
 {
 // --> Vote based on angle range
 	// "j" means cols-1
@@ -235,12 +240,12 @@ void voteDCHTa(unsigned int *img, unsigned int *vote, size_t m, size_t n, double
 				{
 					for (unsigned int idx = 0; idx < subs_right; idx++)
 					{
-						double rho_c = floor((j*cosMap[idx]+i*sinMap[idx])/rho_step+0.5);
+						double rho_c = floor(((j+cLeft)*cosMap[idx]+(i+rTop)*sinMap[idx])/rho_step+0.5);
 						vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
 					}
 					for (unsigned int idx = subs_left; idx < 4*thetaQ; idx++)
 					{
-						double rho_c = floor((j*cosMap[idx]+i*sinMap[idx])/rho_step+0.5);
+						double rho_c = floor(((j+cLeft)*cosMap[idx]+(i+rTop)*sinMap[idx])/rho_step+0.5);
 						vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
 					}
 				}
@@ -248,7 +253,7 @@ void voteDCHTa(unsigned int *img, unsigned int *vote, size_t m, size_t n, double
 				{
 					for (unsigned int idx = subs_left; idx < subs_right; idx++)
 					{
-						double rho_c = floor((j*cosMap[idx]+i*sinMap[idx])/rho_step+0.5);
+						double rho_c = floor(((j+cLeft)*cosMap[idx]+(i+rTop)*sinMap[idx])/rho_step+0.5);
 						vote[idx*(2*rhoQ+1)+(unsigned int)rho_c+rhoQ]++;
 					}
 				}
@@ -264,23 +269,23 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Parameters check
 
     // check for proper number of arguments
-    if(nrhs!=3) 
+    if(nrhs!=7) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:nrhs","Three inputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:nrhs","Seven inputs required.");
     }
     if(nlhs!=3) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:nlhs","Three outputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:nlhs","Three outputs required.");
     }
     // check the type of input argument(s)
     if( !mxIsUint32(prhs[0]) ) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:notUint32","Input matrix must be type Uint32.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:notUint32","Input matrix must be type Uint32.");
     }
     // check the shape of input argument(s)
     if(mxGetNumberOfDimensions(prhs[0])!=2) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:not2D","Input must be 2-D.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:not2D","Input must be 2-D.");
     }
 // --> Accept input parameters
 
@@ -292,15 +297,20 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // check the size of matrix are more than 3x3
     if(mrows<3||ncols<3) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:toosmall","Input matrix must be larger than 3x3.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:toosmall","Input matrix must be larger than 3x3.");
     }
+    // get the raw size and spacing
+	size_t rRaw = (size_t)mxGetScalar(prhs[1]);
+	size_t cRaw = (size_t)mxGetScalar(prhs[2]);
+	size_t rTop = (size_t)mxGetScalar(prhs[3]);
+	size_t cLeft = (size_t)mxGetScalar(prhs[4]);
     // get the upper and lower of angle
-	double angleS = mxGetScalar(prhs[1]);
-	double angleE = mxGetScalar(prhs[2]);
+	double angleS = mxGetScalar(prhs[5]);
+	double angleE = mxGetScalar(prhs[6]);
     // check the range of input argument(s)
 	if (angleS<-90 || angleS>90 || angleE<-90 || angleE>90)
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:OutOfDefined","Input of specified range must be between [-90,90].");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:OutOfDefined","Input of specified range must be between [-90,90].");
 	}
 // --> Parameters can be added to function interface
 
@@ -308,10 +318,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	double thetaResolution = 1;
 	double rhoResolution = 1;
 	// check them
-	double rho_max = floor(sqrt(pow(mrows-1,2)+pow(ncols-1,2))+0.5);
+	double rho_max = floor(sqrt(pow(rRaw-1,2)+pow(cRaw-1,2))+0.5);
     if(thetaResolution>5||rhoResolution>rho_max/10) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:voteDCHTa:meaningless","Resolution of Theta or Rho is meaningless.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:meaningless","Resolution of Theta or Rho is meaningless.");
     }
 // --> Prepare data
 	
@@ -378,7 +388,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Main computation
 
     // call the computational routine
-    voteDCHTa(img,H,mrows,ncols,rho_step,sinMap,cosMap,thetaQ,rhoQ,angleSQ,angleEQ);
+    fixedDCHTa(img,H,mrows,ncols,rho_step,sinMap,cosMap,thetaQ,rhoQ,angleSQ,angleEQ,rTop,cLeft);
 // --> Rest
 
 	// release memory

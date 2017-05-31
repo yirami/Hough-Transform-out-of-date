@@ -101,7 +101,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	{
         mexErrMsgIdAndTxt("MyToolbox:voteSHT:meaningless","Resolution of Theta or Rho is meaningless.");
     }
-// --> 	Prepare data
+// --> Prepare data
 	
 	// compute quantity and step of "theta" & "rho"
 	unsigned int thetaQ = (unsigned int)ceil(45/thetaResolution);

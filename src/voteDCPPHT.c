@@ -3,7 +3,7 @@
  * Released under BSD License
  * All rights reserved.
  * 
- * Filename: votePPHT.c (compiled into mex)
+ * Filename: voteDCPPHT.c (compiled into mex)
  * F-Description: Progressive Probabilistic Hough Transform(PPHT)
  *					with the DC
  *
@@ -496,21 +496,21 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // check for proper number of arguments
     if(nrhs!=4) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:nrhs","Four inputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:voteDCPPHT:nrhs","Four inputs required.");
     }
     if(nlhs!=1) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:nlhs","One output required.");
+        mexErrMsgIdAndTxt("MyToolbox:voteDCPPHT:nlhs","One output required.");
     }
     // check the type of input argument(s)
     if( !mxIsUint32(prhs[0]) ) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:notUint32","Input matrix must be type Uint32.");
+        mexErrMsgIdAndTxt("MyToolbox:voteDCPPHT:notUint32","Input matrix must be type Uint32.");
     }
     // check the shape of input argument(s)
     if(mxGetNumberOfDimensions(prhs[0])!=2) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:not2D","Input must be 2-D.");
+        mexErrMsgIdAndTxt("MyToolbox:voteDCPPHT:not2D","Input must be 2-D.");
     }
 // --> Accept input parameters
 
@@ -539,9 +539,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	double rhoMax = floor(sqrt(pow((double)mrows-1,2)+pow((double)ncols-1,2))+0.5);
     if(thetaResolution>5||rhoResolution>rhoMax/10) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:votePPHT:meaningless","Resolution of Theta or Rho is meaningless.");
+        mexErrMsgIdAndTxt("MyToolbox:voteDCPPHT:meaningless","Resolution of Theta or Rho is meaningless.");
     }
-// --> 	Prepare data
+// --> Prepare data
 	
 	// compute quantity and step of "theta" & "rho"
 	unsigned int thetaQ = (unsigned int)ceil(45/thetaResolution);
