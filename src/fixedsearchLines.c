@@ -12,11 +12,12 @@
  *			 	a 	  vector "rhoSeq"
  *				a 	  scalar "linesMax"
  *				a 	  scalar "lineGap"
- *			 	a 	  scalar "angleS"
- *			 	a	  scalar "angleE"
- *			 	a 	  vector "sizeInfo"
- *					 format	-> 	rTop
- *							-> 	cLeft
+ *				a	  vector "relatInfo"
+ *			 			->	 "rTop"
+ *			 			->   "cLeft"
+ *				a	  vector "angleSpec"
+ *			 			->   "angleS"
+ *			 			->   "angleE"
  * 			and 
  *		output	a 6xR matrix "linesInfo"
  *			output format	-> 	start	point(r)
@@ -28,7 +29,7 @@
  *
  * 		The calling syntax is:
  *			[linesInfo] = fixedsearchLines(img,vote,thetaSeq,rhoSeq,
- *				... linesMax,lineGap,angleS,angleE)
+ *				... linesMax,lineGap,relatInfo,angleSpec)
  * 
  * Author：Yirami
  * A-Description:
@@ -140,7 +141,7 @@ void peaks(unsigned int *vote, size_t m, size_t n, unsigned int linesMax, double
 	}
 }
 /* Procedure of searching lines */
-void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned int lineGap, size_t m, size_t n, double *linesInfo, unsigned int *sizeInfo)
+void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned int lineGap, size_t m, size_t n, double *linesInfo, double *relatInfo)
 {
 	const int shift = 16;
 	for (unsigned int count=0;count<linesMax;count++)
@@ -152,17 +153,17 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 		double thisSin = sin(theta*pi/180);
 		double thisCos = cos(theta*pi/180);
 		int rStart = 0;
-		int cStart = (int)floor((rho-(double)(rStart+(int)sizeInfo[0])*thisSin)/thisCos)-(int)sizeInfo[1];
+		int cStart = (int)floor((rho-(double)(rStart+(int)relatInfo[0])*thisSin)/thisCos)-(int)relatInfo[1];
 		// determine whether the cStart overflows the boundary
 		if (cStart<0)
 		{
 			cStart = 0;
-			rStart = (int)floor((rho-(double)(cStart+(int)sizeInfo[1])*thisCos)/thisSin)-(int)sizeInfo[0];
+			rStart = (int)floor((rho-(double)(cStart+(int)relatInfo[1])*thisCos)/thisSin)-(int)relatInfo[0];
 		}
 		else if (cStart>=n)
 		{
 			cStart = (int)n-1;
-			rStart = (int)floor((rho-(double)(cStart+(int)sizeInfo[1])*thisCos)/thisSin)-(int)sizeInfo[0];
+			rStart = (int)floor((rho-(double)(cStart+(int)relatInfo[1])*thisCos)/thisSin)-(int)relatInfo[0];
 		}
 		int biasFlag = 0;
 		int r0=rStart,c0=cStart,dr0,dc0;
@@ -206,10 +207,10 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 				if (thisLength > lastLength)
 				{
 					lastLength = thisLength;
-					linesInfo[count*6+0] = (double)lineStart[0]+(double)sizeInfo[0]+1;
-					linesInfo[count*6+1] = (double)lineStart[1]+(double)sizeInfo[1]+1;
-					linesInfo[count*6+2] = (double)lineEnd[0]+(double)sizeInfo[0]+1;
-					linesInfo[count*6+3] = (double)lineEnd[1]+(double)sizeInfo[1]+1;
+					linesInfo[count*6+0] = (double)lineStart[0]+relatInfo[0]+1;
+					linesInfo[count*6+1] = (double)lineStart[1]+relatInfo[1]+1;
+					linesInfo[count*6+2] = (double)lineEnd[0]+relatInfo[0]+1;
+					linesInfo[count*6+3] = (double)lineEnd[1]+relatInfo[1]+1;
 				}
 				break;
 			}
@@ -254,10 +255,10 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 					{
 						lastLength = thisLength;
 						// coordinate transformation
-						linesInfo[count*6+0] = (double)lineStart[0]+(double)sizeInfo[0]+1;
-						linesInfo[count*6+1] = (double)lineStart[1]+(double)sizeInfo[1]+1;
-						linesInfo[count*6+2] = (double)lineEnd[0]+(double)sizeInfo[0]+1;
-						linesInfo[count*6+3] = (double)lineEnd[1]+(double)sizeInfo[1]+1;
+						linesInfo[count*6+0] = (double)lineStart[0]+relatInfo[0]+1;
+						linesInfo[count*6+1] = (double)lineStart[1]+relatInfo[1]+1;
+						linesInfo[count*6+2] = (double)lineEnd[0]+relatInfo[0]+1;
+						linesInfo[count*6+3] = (double)lineEnd[1]+relatInfo[1]+1;
 					}
 				}
 			}
@@ -265,9 +266,9 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 		// enhanced the robustness: none line segment are detected
 		if (!lastLength)
 		{
-			linesInfo[count*6+0] = (double)rStart+1;
+			linesInfo[count*6+0] = (double)rStart+relatInfo[0]+1;
 			linesInfo[count*6+1] = 1;
-			linesInfo[count*6+2] = (double)rStart+1;
+			linesInfo[count*6+2] = (double)rStart+relatInfo[0]+1;
 			linesInfo[count*6+3] = (double)n;
 		}
 	}
@@ -279,9 +280,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Parameters check
 
     // check for proper number of arguments
-    if(nrhs!=9) 
+    if(nrhs!=8) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:fixedsearchLines:nrhs","Nine inputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedsearchLines:nrhs","Eight inputs required.");
     }
     if(nlhs!=1) 
 	{
@@ -320,9 +321,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	double *rhoSeq = mxGetData(prhs[3]);
 	unsigned int linesMax = (unsigned int)mxGetScalar(prhs[4]);
 	unsigned int lineGap = (unsigned int)mxGetScalar(prhs[5]);
-	double angleS = mxGetScalar(prhs[6]);
-	double angleE = mxGetScalar(prhs[7]);
-	unsigned int *sizeInfo = mxGetData(prhs[8]);
+	double *relatInfo = mxGetData(prhs[6]);
+	double *angleSpec = mxGetData(prhs[7]);
+	double angleS = angleSpec[0];
+	double angleE = angleSpec[1];
     // check the range of input argument(s)
 	if (angleS<-90 || angleS>90 || angleE<-90 || angleE>90)
 	{
@@ -367,7 +369,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // call the procedure of searching peaks
     peaks(vote,mrowsVote,ncolsVote,linesMax,thetaSeq,rhoSeq,thetaStep,rhoStep,peaksInfo,angleSQ,angleEQ);
 	// call the procedure of searching lines
-	lines(img,peaksInfo,linesMax,lineGap,mrowsImg,ncolsImg,linesInfo,sizeInfo);
+	lines(img,peaksInfo,linesMax,lineGap,mrowsImg,ncolsImg,linesInfo,relatInfo);
 // --> Rest
 
 	// release memory

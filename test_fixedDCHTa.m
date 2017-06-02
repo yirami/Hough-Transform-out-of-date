@@ -7,7 +7,8 @@ thisGray = rgb2gray(RGB);
 thisEdge = edge(thisGray,'canny');
 thisEdgeUint32 = uint32(thisEdge);
 %%
-[thisH,~,~] = fixedDCHTa(thisEdgeUint32,size(RGB,1),size(RGB,2),0,0,-90,90);
+sizeRaw = size(RGB);
+[thisH,~,~] = fixedDCHTa(thisEdgeUint32,sizeRaw(1:2),[0,0],[-90,90]);
 [H_DCHT,~,~]=voteDCHT(thisEdgeUint32);
 cmp = int32(thisH)-int32(H_DCHT);
 % %%

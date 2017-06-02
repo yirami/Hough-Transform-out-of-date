@@ -8,20 +8,23 @@
  *						with a limit of area and angle
  *
  *		inputs 	a MxN matrix "img"
- *			 	a 	  scalar "rRaw"
- *			 	a	  scalar "cRaw"
- *			 	a 	  scalar "rTop"
- *			 	a	  scalar "cLeft"
- *			 	a 	  scalar "angleS"
- *			 	a	  scalar "angleE"
+ *				a	  vector "sizeRaw"
+ *			 			->   "rRaw"
+ *			 			->   "cRaw"
+ *				a	  vector "relatInfo"
+ *			 			->	 "rTop"
+ *			 			->   "cLeft"
+ *				a	  vector "angleSpec"
+ *			 			->   "angleS"
+ *			 			->   "angleE"
  * 			and 
  *		outputs a PxQ matrix "H"
  *				a 1xR matrix "theta"
  *				a 1xR matrix "rho"
  *
  * 		The calling syntax is:
- *			[H,theta,rho] = fixedDCHTa(img,rRaw,cRaw,rTop,cLeft,
- *								... angleS,angleE)
+ *			[H,theta,rho] = fixedDCHTa(img,sizeRaw,relatInfo,
+ *								... angleSpec)
  * 
  * Author£ºYirami
  * A-Description:
@@ -269,9 +272,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
 // --> Parameters check
 
     // check for proper number of arguments
-    if(nrhs!=7) 
+    if(nrhs!=4) 
 	{
-        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:nrhs","Seven inputs required.");
+        mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:nrhs","Four inputs required.");
     }
     if(nlhs!=3) 
 	{
@@ -299,14 +302,17 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	{
         mexErrMsgIdAndTxt("MyToolbox:fixedDCHTa:toosmall","Input matrix must be larger than 3x3.");
     }
-    // get the raw size and spacing
-	size_t rRaw = (size_t)mxGetScalar(prhs[1]);
-	size_t cRaw = (size_t)mxGetScalar(prhs[2]);
-	size_t rTop = (size_t)mxGetScalar(prhs[3]);
-	size_t cLeft = (size_t)mxGetScalar(prhs[4]);
+    // get the raw size and relative location information
+	double *sizeRaw = mxGetData(prhs[1]);
+	size_t rRaw = (size_t)sizeRaw[0];
+	size_t cRaw = (size_t)sizeRaw[1];
+	double *relatInfo = mxGetData(prhs[2]);
+	size_t rTop = (size_t)relatInfo[0];
+	size_t cLeft = (size_t)relatInfo[1];
     // get the upper and lower of angle
-	double angleS = mxGetScalar(prhs[5]);
-	double angleE = mxGetScalar(prhs[6]);
+	double *angleSpec = mxGetData(prhs[3]);
+	double angleS = angleSpec[0];
+	double angleE = angleSpec[1];
     // check the range of input argument(s)
 	if (angleS<-90 || angleS>90 || angleE<-90 || angleE>90)
 	{
