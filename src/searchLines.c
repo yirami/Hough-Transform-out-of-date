@@ -170,10 +170,10 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 				if (thisLength > lastLength)
 				{
 					lastLength = thisLength;
-					linesInfo[count*6+0] = (double)lineStart[0];
-					linesInfo[count*6+1] = (double)lineStart[1];
-					linesInfo[count*6+2] = (double)lineEnd[0];
-					linesInfo[count*6+3] = (double)lineEnd[1];
+					linesInfo[count*6+0] = (double)lineStart[0]+1;
+					linesInfo[count*6+1] = (double)lineStart[1]+1;
+					linesInfo[count*6+2] = (double)lineEnd[0]+1;
+					linesInfo[count*6+3] = (double)lineEnd[1]+1;
 				}
 				break;
 			}
@@ -183,15 +183,15 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 				if (startPFlag)
 				{
 					startPFlag = 0;
-					lineStart[0] = r1+1;
-					lineStart[1] = c1+1;
-					lineEnd[0] = r1+1;
-					lineEnd[1] = c1+1;
+					lineStart[0] = r1;
+					lineStart[1] = c1;
+					lineEnd[0] = r1;
+					lineEnd[1] = c1;
 				}
 				else
 				{
-					lineEnd[0] = r1+1;
-					lineEnd[1] = c1+1;
+					lineEnd[0] = r1;
+					lineEnd[1] = c1;
 				}
 			}
 			else if (!startPFlag)
@@ -205,8 +205,8 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 				if (leftPFlag || rightPFlag)
 				{
 					gap = 0;
-					lineEnd[0] = r1+1;
-					lineEnd[1] = c1+1;
+					lineEnd[0] = r1;
+					lineEnd[1] = c1;
 					continue;
 				}
 				// end of line segment
@@ -217,10 +217,10 @@ void lines(unsigned int *img,double *peaksInfo, unsigned int linesMax, unsigned 
 					if (thisLength > lastLength)
 					{
 						lastLength = thisLength;
-						linesInfo[count*6+0] = (double)lineStart[0];
-						linesInfo[count*6+1] = (double)lineStart[1];
-						linesInfo[count*6+2] = (double)lineEnd[0];
-						linesInfo[count*6+3] = (double)lineEnd[1];
+						linesInfo[count*6+0] = (double)lineStart[0]+1;
+						linesInfo[count*6+1] = (double)lineStart[1]+1;
+						linesInfo[count*6+2] = (double)lineEnd[0]+1;
+						linesInfo[count*6+3] = (double)lineEnd[1]+1;
 					}
 				}
 			}

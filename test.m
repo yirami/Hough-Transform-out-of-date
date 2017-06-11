@@ -15,22 +15,22 @@ img_=uint32(img);
 % figure(1);
 % mesh(H1);
 
-% [H_DCHT,theta_DCHT,rho_DCHT]=voteDCHT(img_);
-% figure(31);
-% mesh(H_DCHT);
-% tic;
-% peaks = houghpeaks(double(H_DCHT),8,'Threshold',double(0.3*max(H_DCHT(:))));
-% lines = houghlines(img,theta_DCHT,rho_DCHT,peaks);
-% t1=toc;
-% figure(32);
-% imshow(img);
-% hold on;
-% for k = 1:length(lines)
-%    xy = [lines(k).point1; lines(k).point2];
-%    plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
-%    plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
-%    plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
-% end
+[H_DCHT,theta_DCHT,rho_DCHT]=voteDCHT(img_);
+figure(31);
+mesh(H_DCHT);
+tic;
+peaks = houghpeaks(double(H_DCHT),8,'Threshold',double(0.3*max(H_DCHT(:))));
+lines = houghlines(img,theta_DCHT,rho_DCHT,peaks);
+t1=toc;
+figure(32);
+imshow(img);
+hold on;
+for k = 1:length(lines)
+   xy = [lines(k).point1; lines(k).point2];
+   plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+   plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
+   plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
+end
 
 % [H_DCHT,theta_DCHT,rho_DCHT]=voteDCHTa(img_,20,60);
 % figure(31);
@@ -106,17 +106,17 @@ img_=uint32(img);
 %    plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
 % end
 
-% tic;
-% [linesInfo] = searchLines(img_,H_DCHT,theta_DCHT,rho_DCHT,4,5);
-% t2=toc;
-% figure(33);
-% imshow(img);
-% hold on;
-% for k = 1:size(linesInfo,2)
-%     rows = size(img,1);
-%     xy = [linesInfo(2,k),linesInfo(1,k);linesInfo(4,k),linesInfo(3,k)];
-%     plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
-%     plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
-%     plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
-% end
+tic;
+[linesInfo] = searchLines(img_,H_DCHT,theta_DCHT,rho_DCHT,4,5);
+t2=toc;
+figure(33);
+imshow(img);
+hold on;
+for k = 1:size(linesInfo,2)
+    rows = size(img,1);
+    xy = [linesInfo(2,k),linesInfo(1,k);linesInfo(4,k),linesInfo(3,k)];
+    plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+    plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
+    plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
+end
 

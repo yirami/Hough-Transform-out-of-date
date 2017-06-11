@@ -126,7 +126,7 @@ void peaks(unsigned int *vote, size_t m, size_t n, unsigned int linesMax, double
 		{
 			startI = maxVi-suppVector[1];
 		}
-		endI = 0;
+		endI = m-1;
 		if (maxVi+suppVector[1]<m-1)
 		{
 			endI = maxVi+suppVector[1];
