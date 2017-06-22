@@ -2,7 +2,7 @@
 clear;
 clc;
 %% 测试图像列表
-testDir = '.\DirectionRate';
+testDir = '.\DetectionRate';
 picList = dir(testDir);
 for i = size(picList,1):-1:1
     if picList(i).isdir
@@ -81,6 +81,7 @@ for t=1:length(linesMax)
         title('PPHT的检测结果');
         %% 标准Hough（SHT）
         [hSHT,thetaSHT,rhoSHT]=voteSHT(uint32(thisEdge));
+%         [linesSHT] = searchLines(uint32(thisEdge),hSHT,thetaSHT,rhoSHT,linesMax(t),lineGap);
         peaksSHT = houghpeaks(double(hSHT),linesMax(t),'Threshold',double(0.1*max(hSHT(:))));
         linesSHT = houghlines(thisEdge,thetaSHT,rhoSHT,peaksSHT,'MinLength',lineLength,'FillGap',lineGap);
         dataDetectionRate(i).hSHT=hSHT;
@@ -93,6 +94,7 @@ for t=1:length(linesMax)
         title('SHT的检测结果');
         %% 采用方向编码的Hough（DCHT）
         [hDCHT,thetaDCHT,rhoDCHT]=voteDCHT(uint32(thisEdge));
+%         [linesDCHT] = searchLines(uint32(thisEdge),hDCHT,thetaDCHT,rhoDCHT,linesMax(t),lineGap);
         peaksDCHT = houghpeaks(double(hDCHT),linesMax(t),'Threshold',double(0.1*max(hDCHT(:))));
         linesDCHT = houghlines(thisEdge,thetaDCHT,rhoDCHT,peaksDCHT,'MinLength',lineLength,'FillGap',lineGap);
         dataDetectionRate(i).hDCHT=hDCHT;

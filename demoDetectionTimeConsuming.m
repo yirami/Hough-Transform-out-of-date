@@ -10,7 +10,8 @@ for i = size(picList,1):-1:1
     end
 end
 %% 统一测试参数
-linesMax = 1000;
+linesMaxPPHT = 1000;
+linesMax = 10;
 lineLengthPPHT = 50;
 lineGapPPHT = 5;
 lineLength = 50;
@@ -27,23 +28,25 @@ for i = 1:size(picList,1)
     uint32thisEdge = uint32(thisEdge);
     %% 累计概率Hough（PPHT）
     tic;
-    linesPPHT = votePPHT(uint32thisEdge,linesMax,lineLengthPPHT,lineGapPPHT);
+    linesPPHT = votePPHT(uint32thisEdge,linesMaxPPHT,lineLengthPPHT,lineGapPPHT);
     timeConsuming(2,i)=toc;
     %% 标准Hough（SHT）
     tic;
     [hSHT,thetaSHT,rhoSHT]=voteSHT(uint32thisEdge);
     timeConsuming(3,i)=toc;
     tic;
-    peaksSHT = houghpeaks(double(hSHT),linesMax,'Threshold',100);
-    linesSHT = houghlines(thisEdge,thetaSHT,rhoSHT,peaksSHT,'MinLength',lineLength,'FillGap',lineGap);
+    [linesSHT] = searchLines(uint32thisEdge,hSHT,thetaSHT,rhoSHT,linesMax,lineGap);
+%     peaksSHT = houghpeaks(double(hSHT),linesMax,'Threshold',100);
+%     linesSHT = houghlines(thisEdge,thetaSHT,rhoSHT,peaksSHT,'MinLength',lineLength,'FillGap',lineGap);
     timeConsuming(4,i)=toc;
     %% 采用方向编码的Hough（DCHT）
     tic;
     [hDCHT,thetaDCHT,rhoDCHT]=voteDCHT(uint32thisEdge);
     timeConsuming(5,i)=toc;
     tic;
-    peaksDCHT = houghpeaks(double(hDCHT),linesMax,'Threshold',100);
-    linesDCHT = houghlines(thisEdge,thetaDCHT,rhoDCHT,peaksDCHT,'MinLength',lineLength,'FillGap',lineGap);
+    [linesDCHT] = searchLines(uint32thisEdge,hDCHT,thetaDCHT,rhoDCHT,linesMax,lineGap);
+%     peaksDCHT = houghpeaks(double(hDCHT),linesMax,'Threshold',100);
+%     linesDCHT = houghlines(thisEdge,thetaDCHT,rhoDCHT,peaksDCHT,'MinLength',lineLength,'FillGap',lineGap);
     timeConsuming(6,i)=toc;
 end
 Time = mean((timeConsuming'));
@@ -51,7 +54,8 @@ figure(1);
 set(gcf,'color','w');
 subplot(4,1,1);
 bar([0 Time(4) Time(6)],'FaceColor',[255 214 197]/255,'EdgeColor',[214 148 148]/255,'LineWidth',1.5);
-set(gca,'xlim',[0 4]);set(gca,'ylim',[0 0.105]);
+set(gca,'xlim',[0 4]);set(gca,'ylim',[0 0.005]);
+% set(gca,'xlim',[0 4]);set(gca,'ylim',[0 0.105]);
 text(4.1,0.05,{'Peaks and Lines';'    Extraction'});
 set(gca,'xticklabel',[]);set(gca,'box','off');
 set(gca,'position',[0.15 0.71 0.65 0.2]);
@@ -70,7 +74,8 @@ set(gca,'xticklabel',[]);set(gca,'box','off');
 set(gca,'position',[0.15 0.31 0.65 0.2]);
 subplot(4,1,4),
 bar([Time(1)+Time(2) Time(1)+Time(3)+Time(4) Time(1)+Time(5)+Time(6)],'FaceColor',[255 116 138]/255,'EdgeColor',[1 0 0],'LineWidth',1.5);
-set(gca,'xlim',[0 4]);set(gca,'ylim',[0 0.17]);
+set(gca,'xlim',[0 4]);set(gca,'ylim',[0 0.07]);
+% set(gca,'xlim',[0 4]);set(gca,'ylim',[0 0.17]);
 text(4.3,0.1,'Total');
 set(gca,'position',[0.15 0.11 0.65 0.2]);
 set(gca, 'XTick', 0:4);set(gca,'box','off');
